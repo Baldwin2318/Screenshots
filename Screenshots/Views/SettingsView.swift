@@ -8,11 +8,9 @@ struct SettingsView: View {
     let syncProgressText: String?
     let isSyncing: Bool
     let isSyncPaused: Bool
-    let rebuildRecommendation: String?
     let runSyncNow: () -> Void
     let pauseSync: () -> Void
     let resumeSync: () -> Void
-    let rebuildCategories: () -> Void
 
     var body: some View {
         NavigationStack {
@@ -30,24 +28,6 @@ struct SettingsView: View {
                 Section("Search") {
                     Toggle("Semantic search", isOn: $smartSearchEnabled)
                     Text("Semantic search uses Apple NLP embeddings for better matches.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                Section("ML Grouping") {
-                    if let rebuildRecommendation {
-                        Text(rebuildRecommendation)
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    } else {
-                        Text("Collections and groups update automatically during import. Rebuild only when recommendations appear.")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Button(rebuildRecommendation == nil ? "Rebuild categories" : "Rebuild categories (Recommended)", action: rebuildCategories)
-
-                    Text("Apple Intelligence calls are budgeted per day; local Vision/NLP fallback keeps import efficient when budget is reached.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }

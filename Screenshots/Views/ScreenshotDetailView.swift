@@ -37,13 +37,6 @@ struct ScreenshotDetailView: View {
                             }
                         }
 
-                        if !item.collectionTags.isEmpty {
-                            Text("Collections")
-                                .font(.caption.bold())
-                                .foregroundStyle(.secondary)
-                            WrappingTags(tags: item.collectionTags)
-                        }
-
                         if !item.mlLabels.isEmpty {
                             Text("Detected Labels")
                                 .font(.caption.bold())
