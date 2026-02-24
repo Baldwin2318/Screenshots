@@ -256,6 +256,8 @@
 				DEVELOPMENT_TEAM = 36257AHSF7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is used to capture screenshots and references into your collection.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Photo Library access is used to automatically import and organize your iPhone screenshots.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -288,6 +290,8 @@
 				DEVELOPMENT_TEAM = 36257AHSF7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Camera access is used to capture screenshots and references into your collection.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Photo Library access is used to automatically import and organize your iPhone screenshots.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

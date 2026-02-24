@@ -1,25 +1,21 @@
-//
-//  ScreenshotsApp.swift
-//  Screenshots
-//
-//  Created by Baldwin Kiel Malabanan on 2026-02-23.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct ScreenshotsApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    private let container: ModelContainer = {
+        let schema = Schema([ScreenshotItem.self])
+        let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            return try ModelContainer(for: schema, configurations: [configuration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            ScreenshotsApp.resetCorruptedStoreFiles()
+            do {
+                return try ModelContainer(for: schema, configurations: [configuration])
+            } catch {
+                fatalError("Failed to initialize SwiftData container after reset: \(error)")
+            }
         }
     }()
 
@@ -27,6 +23,24 @@ struct ScreenshotsApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(container)
+    }
+
+    private static func resetCorruptedStoreFiles() {
+        let fileManager = FileManager.default
+        guard let appSupportURL = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return
+        }
+
+        let storeURL = appSupportURL.appendingPathComponent("default.store")
+        let urls = [
+            storeURL,
+            storeURL.appendingPathExtension("shm"),
+            storeURL.appendingPathExtension("wal")
+        ]
+
+        for url in urls where fileManager.fileExists(atPath: url.path) {
+            try? fileManager.removeItem(at: url)
+        }
     }
 }
