@@ -14,6 +14,17 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
     private var isRegistered = false
     private var onLibraryChanged: (() -> Void)?
     private let lastSyncCursorKey = "sync.lastCreationDate.v1"
+    private struct ImportTuning {
+        let batchSize: Int
+        let batchDelayNanoseconds: UInt64
+
+        static func current() -> ImportTuning {
+            if ProcessInfo.processInfo.isLowPowerModeEnabled {
+                return ImportTuning(batchSize: 10, batchDelayNanoseconds: 900_000_000)
+            }
+            return ImportTuning(batchSize: 30, batchDelayNanoseconds: 280_000_000)
+        }
+    }
 
     private struct ImportedPayload {
         let title: String
@@ -48,8 +59,7 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
         onLibraryChanged?()
     }
 
-    func syncIfNeeded(context: ModelContext, existingItems: [ScreenshotItem], autoImportEnabled: Bool) async {
-        guard autoImportEnabled else { return }
+    func syncIfNeeded(context: ModelContext, existingItems: [ScreenshotItem], allowImport: Bool) async {
         guard !isSyncing else { return }
 
         isSyncing = true
@@ -75,14 +85,54 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
             return
         }
 
-        let options = PHFetchOptions()
-        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
         let defaults = UserDefaults.standard
+        let allAssetsOptions = PHFetchOptions()
+        allAssetsOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
-        if existingItems.isEmpty {
+        if existingItems.filter({ $0.sourceAssetId != nil }).isEmpty {
             defaults.removeObject(forKey: lastSyncCursorKey)
         }
 
+        let allAssets = PHAsset.fetchAssets(in: screenshotsAlbum, options: allAssetsOptions)
+        var currentAssetIds = Set<String>()
+        currentAssetIds.reserveCapacity(allAssets.count)
+        var newestAssetDate: Date?
+        allAssets.enumerateObjects { asset, index, _ in
+            currentAssetIds.insert(asset.localIdentifier)
+            if index == 0 {
+                newestAssetDate = asset.creationDate
+            }
+        }
+
+        var deleted = 0
+        var deletedSourceIds = Set<String>()
+        for item in existingItems {
+            guard let sourceAssetId = item.sourceAssetId else { continue }
+            guard !currentAssetIds.contains(sourceAssetId) else { continue }
+
+            FileStore.deleteImage(filename: item.imagePath)
+            context.delete(item)
+            deleted += 1
+            deletedSourceIds.insert(sourceAssetId)
+        }
+
+        if deleted > 0 {
+            try? context.save()
+        }
+
+        guard allowImport else {
+            if let newestAssetDate {
+                defaults.set(newestAssetDate, forKey: lastSyncCursorKey)
+            }
+            lastSummary = deleted > 0
+                ? "Removed \(deleted) deleted screenshots from Photos."
+                : "Up to date."
+            return
+        }
+
+        let options = PHFetchOptions()
+        // Ascending order keeps cursor checkpointing resumable if import pauses mid-run.
+        options.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: true)]
         let lastSyncDate = defaults.object(forKey: lastSyncCursorKey) as? Date
         if let lastSyncDate {
             options.predicate = NSPredicate(format: "creationDate > %@", lastSyncDate as NSDate)
@@ -95,22 +145,45 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
         }
 
         var knownIds = Set(existingItems.compactMap(\.sourceAssetId))
+        knownIds.subtract(deletedSourceIds)
         var imported = 0
         var skipped = 0
         var failed = 0
         let total = assetList.count
         var newestImportedDate: Date?
+        var checkpointCursorDate = lastSyncDate
+        var encounteredFailure = false
+        var scannedInBatch = 0
 
         for (index, asset) in assetList.enumerated() {
             if isPaused {
                 lastSummary = "Import paused at \(imported)/\(total)."
                 break
             }
+            if Task.isCancelled {
+                lastSummary = "Import cancelled."
+                break
+            }
+
+            let tuning = ImportTuning.current()
+            let assetDate = asset.creationDate ?? .now
 
             if knownIds.contains(asset.localIdentifier) {
                 skipped += 1
+                if !encounteredFailure {
+                    checkpointCursorDate = Self.maxDate(checkpointCursorDate, assetDate)
+                }
                 if index % 20 == 0 {
                     syncProgressText = "Scanning \(index + 1)/\(total)"
+                }
+                scannedInBatch += 1
+                if scannedInBatch >= tuning.batchSize {
+                    try? context.save()
+                    if let checkpointCursorDate {
+                        defaults.set(checkpointCursorDate, forKey: lastSyncCursorKey)
+                    }
+                    scannedInBatch = 0
+                    try? await Task.sleep(nanoseconds: tuning.batchDelayNanoseconds)
                 }
                 continue
             }
@@ -119,6 +192,8 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
 
             guard let payload = await processAsset(asset) else {
                 failed += 1
+                encounteredFailure = true
+                scannedInBatch += 1
                 continue
             }
 
@@ -137,17 +212,22 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
             context.insert(item)
             knownIds.insert(payload.sourceAssetId)
             imported += 1
-            if let currentNewest = newestImportedDate {
-                if payload.date > currentNewest {
-                    newestImportedDate = payload.date
-                }
-            } else {
-                newestImportedDate = payload.date
+            newestImportedDate = Self.maxDate(newestImportedDate, payload.date)
+            if !encounteredFailure {
+                checkpointCursorDate = Self.maxDate(checkpointCursorDate, payload.date)
             }
+            scannedInBatch += 1
 
-            if imported % 8 == 0 {
+            if scannedInBatch >= tuning.batchSize {
                 try? context.save()
-                lastSummary = "Importing \(imported) screenshots..."
+                if let checkpointCursorDate {
+                    defaults.set(checkpointCursorDate, forKey: lastSyncCursorKey)
+                }
+                lastSummary = ProcessInfo.processInfo.isLowPowerModeEnabled
+                    ? "Low Power Mode: importing carefully (\(imported) imported)."
+                    : "Importing \(imported) screenshots..."
+                scannedInBatch = 0
+                try? await Task.sleep(nanoseconds: tuning.batchDelayNanoseconds)
                 await Task.yield()
             }
         }
@@ -156,30 +236,37 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
             try? context.save()
         }
 
-        if imported > 0 || skipped > 0 || failed > 0 {
-            lastSummary = "Imported \(imported), skipped \(skipped), failed \(failed)."
+        if imported > 0 || skipped > 0 || failed > 0 || deleted > 0 {
+            lastSummary = "Imported \(imported), removed \(deleted), skipped \(skipped), failed \(failed)."
         } else {
             lastSummary = "Up to date."
         }
 
-        if let newestImportedDate {
+        if let checkpointCursorDate {
+            defaults.set(checkpointCursorDate, forKey: lastSyncCursorKey)
+        } else if !encounteredFailure, let newestImportedDate {
             defaults.set(newestImportedDate, forKey: lastSyncCursorKey)
-        } else if let lastAssetDate = assetList.compactMap(\.creationDate).max() {
+        } else if !encounteredFailure, let newestAssetDate {
+            defaults.set(newestAssetDate, forKey: lastSyncCursorKey)
+        } else if !encounteredFailure, let lastAssetDate = assetList.compactMap(\.creationDate).max() {
             defaults.set(lastAssetDate, forKey: lastSyncCursorKey)
         }
     }
 
     private func processAsset(_ asset: PHAsset) async -> ImportedPayload? {
         await Task.detached(priority: .userInitiated) {
-            guard let image = await Self.loadImage(for: asset) else {
+            guard var image: UIImage? = await Self.loadImage(for: asset) else {
                 return nil
             }
 
-            let classification = await ScreenshotClassifier.classify(image: image)
+            guard let loadedImage = image else { return nil }
+            let classification = await ScreenshotClassifier.classify(image: loadedImage)
 
-            guard let filename = FileStore.saveImage(image) else {
+            guard let filename = FileStore.saveImage(loadedImage) else {
+                image = nil
                 return nil
             }
+            image = nil
 
             let date = asset.creationDate ?? .now
             let title = date.formatted(date: .abbreviated, time: .shortened)
@@ -193,6 +280,11 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
                 sourceAssetId: asset.localIdentifier
             )
         }.value
+    }
+
+    private static func maxDate(_ lhs: Date?, _ rhs: Date) -> Date {
+        guard let lhs else { return rhs }
+        return lhs > rhs ? lhs : rhs
     }
 
     private func requestAccessIfNeeded() async -> Bool {

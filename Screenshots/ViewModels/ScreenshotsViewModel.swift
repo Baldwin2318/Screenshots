@@ -10,6 +10,7 @@ final class ScreenshotsViewModel: ObservableObject {
 
     private var allScreenshots: [ScreenshotItem] = []
     private var smartSearchEnabled = true
+    private var saveSearchHistoryEnabled = true
     private var searchTask: Task<Void, Never>?
     private var revision = 0
 
@@ -19,8 +20,13 @@ final class ScreenshotsViewModel: ObservableObject {
         searchTask?.cancel()
     }
 
-    func configure(screenshots: [ScreenshotItem], smartSearchEnabled: Bool) {
+    func configure(
+        screenshots: [ScreenshotItem],
+        smartSearchEnabled: Bool,
+        saveSearchHistoryEnabled: Bool
+    ) {
         self.smartSearchEnabled = smartSearchEnabled
+        self.saveSearchHistoryEnabled = saveSearchHistoryEnabled
         allScreenshots = screenshots
         revision += 1
         let targetRevision = revision
@@ -49,6 +55,15 @@ final class ScreenshotsViewModel: ObservableObject {
         scheduleSearch(revision: revision, debounceNanoseconds: 120_000_000)
     }
 
+    func setSaveSearchHistoryEnabled(_ enabled: Bool) {
+        saveSearchHistoryEnabled = enabled
+    }
+
+    func commitSearchHistory() {
+        guard saveSearchHistoryEnabled else { return }
+        SearchHistoryStore.save(query: searchText)
+    }
+
     private func rebuildSearchIndex(using screenshots: [ScreenshotItem]) {
         let snapshots = screenshots.map {
             SearchIndexSnapshot(
@@ -72,6 +87,7 @@ final class ScreenshotsViewModel: ObservableObject {
         let query = searchText
         let screenshots = allScreenshots
         let smartSearchEnabled = smartSearchEnabled
+        let saveSearchHistoryEnabled = saveSearchHistoryEnabled
         isSearching = !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
         searchTask = Task(priority: .userInitiated) {
@@ -92,6 +108,10 @@ final class ScreenshotsViewModel: ObservableObject {
                 results = indexedResults.isEmpty ? Self.defaultFilter(in: screenshots, query: normalizedQuery) : indexedResults
             } else {
                 results = Self.defaultFilter(in: screenshots, query: normalizedQuery)
+            }
+
+            if saveSearchHistoryEnabled, !normalizedQuery.isEmpty {
+                SearchHistoryStore.save(query: normalizedQuery)
             }
 
             await MainActor.run {

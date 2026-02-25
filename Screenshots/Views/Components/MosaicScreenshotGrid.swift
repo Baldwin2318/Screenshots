@@ -6,18 +6,18 @@ struct MosaicScreenshotGrid: View {
     let onDelete: (ScreenshotItem) -> Void
 
     private let columns = [
-        GridItem(.flexible(), spacing: 10),
-        GridItem(.flexible(), spacing: 10)
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 10) {
+        LazyVGrid(columns: columns, spacing: 12) {
             ForEach(items, id: \.id) { item in
                 Button {
                     onTap(item)
                 } label: {
                     LocalFileImage(path: item.imagePath, contentMode: .fill)
-                        .frame(height: 190)
+                        .frame(height: 188)
                         .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                         .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))

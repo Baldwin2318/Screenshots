@@ -2,11 +2,11 @@ import Foundation
 import UIKit
 
 enum FileStore {
-    static var documentsURL: URL {
+    nonisolated static var documentsURL: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
     }
 
-    static func saveImage(_ image: UIImage) -> String? {
+    nonisolated static func saveImage(_ image: UIImage) -> String? {
         let filename = UUID().uuidString + ".jpg"
         let url = documentsURL.appendingPathComponent(filename)
         guard let data = image.jpegData(compressionQuality: 0.88) else { return nil }
@@ -20,7 +20,7 @@ enum FileStore {
         }
     }
 
-    static func deleteImage(filename: String) {
+    nonisolated static func deleteImage(filename: String) {
         let url = documentsURL.appendingPathComponent(filename)
         try? FileManager.default.removeItem(at: url)
     }
