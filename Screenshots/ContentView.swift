@@ -38,7 +38,7 @@ struct ContentView: View {
                 Spacer(minLength: 16)
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
-            .navigationTitle("All Screenshots")
+            .navigationTitle("Screenshots")
             .searchable(
                 text: Binding(
                     get: { viewModel.searchText },
@@ -83,14 +83,14 @@ struct ContentView: View {
                     clearSearchHistory: clearSearchHistory
                 )
             }
-            .alert("Sync screenshots now?", isPresented: $showSyncPrompt) {
-                Button("Not now", role: .cancel) {}
-                Button("Sync") {
-                    Task { await syncNow(allowImport: true) }
-                }
-            } message: {
-                Text("Do you want to import new screenshots from Photos for this app session?")
-            }
+//            .alert("Sync screenshots now?", isPresented: $showSyncPrompt) {
+//                Button("Not now", role: .cancel) {}
+//                Button("Sync") {
+//                    Task { await syncNow(allowImport: true) }
+//                }
+//            } message: {
+//                Text("Do you want to import new screenshots from Photos for this app session?")
+//            }
             .alert("Removed from this app", isPresented: $showLocalDeleteNotice) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -155,8 +155,8 @@ struct ContentView: View {
     private var screenshotsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text("Screenshots")
-                    .font(.title2.bold())
+//                Text("Screenshots")
+//                    .font(.title2.bold())
                 Spacer()
                 if syncService.isSyncing && !isSearching {
                     ProgressView()
