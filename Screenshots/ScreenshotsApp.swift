@@ -3,6 +3,10 @@ import SwiftData
 
 @main
 struct ScreenshotsApp: App {
+    init() {
+        CLIPTokenizerBootstrap.registerDefaultTokenizerIfAvailable()
+    }
+
     private let container: ModelContainer = {
         let schema = Schema([ScreenshotItem.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
