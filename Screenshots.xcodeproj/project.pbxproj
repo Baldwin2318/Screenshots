@@ -6,8 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		554C33F12F5000EA0033BFCD /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 554C33F02F5000EA0033BFCD /* Tokenizers */; };
+		554C33F42F5001030033BFCD /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 554C33F32F5001030033BFCD /* Tokenizers */; };
+		554C342F2F50026E0033BFCD /* Tokenizers in Frameworks */ = {isa = PBXBuildFile; productRef = 554C342E2F50026E0033BFCD /* Tokenizers */; };
+		554C34332F5004A30033BFCD /* tokenizer.json in Resources */ = {isa = PBXBuildFile; fileRef = 554C34302F5004A30033BFCD /* tokenizer.json */; };
+		554C34342F5004A30033BFCD /* tokenizer_config.json in Resources */ = {isa = PBXBuildFile; fileRef = 554C34312F5004A30033BFCD /* tokenizer_config.json */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		554C32E42F4D24C60033BFCD /* Screenshots.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Screenshots.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		554C34302F5004A30033BFCD /* tokenizer.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tokenizer.json; sourceTree = "<group>"; };
+		554C34312F5004A30033BFCD /* tokenizer_config.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = tokenizer_config.json; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -23,6 +33,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				554C33F42F5001030033BFCD /* Tokenizers in Frameworks */,
+				554C33F12F5000EA0033BFCD /* Tokenizers in Frameworks */,
+				554C342F2F50026E0033BFCD /* Tokenizers in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -32,6 +45,7 @@
 		554C32DB2F4D24C60033BFCD = {
 			isa = PBXGroup;
 			children = (
+				554C34322F5004A30033BFCD /* Tokenizer */,
 				554C32E62F4D24C60033BFCD /* Screenshots */,
 				554C32E52F4D24C60033BFCD /* Products */,
 			);
@@ -43,6 +57,15 @@
 				554C32E42F4D24C60033BFCD /* Screenshots.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		554C34322F5004A30033BFCD /* Tokenizer */ = {
+			isa = PBXGroup;
+			children = (
+				554C34302F5004A30033BFCD /* tokenizer.json */,
+				554C34312F5004A30033BFCD /* tokenizer_config.json */,
+			);
+			path = Tokenizer;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -65,6 +88,9 @@
 			);
 			name = Screenshots;
 			packageProductDependencies = (
+				554C33F02F5000EA0033BFCD /* Tokenizers */,
+				554C33F32F5001030033BFCD /* Tokenizers */,
+				554C342E2F50026E0033BFCD /* Tokenizers */,
 			);
 			productName = Screenshots;
 			productReference = 554C32E42F4D24C60033BFCD /* Screenshots.app */;
@@ -94,6 +120,9 @@
 			);
 			mainGroup = 554C32DB2F4D24C60033BFCD;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				554C342D2F50026E0033BFCD /* XCRemoteSwiftPackageReference "swift-transformers" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 554C32E52F4D24C60033BFCD /* Products */;
 			projectDirPath = "";
@@ -109,6 +138,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				554C34332F5004A30033BFCD /* tokenizer.json in Resources */,
+				554C34342F5004A30033BFCD /* tokenizer_config.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -336,6 +367,33 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		554C342D2F50026E0033BFCD /* XCRemoteSwiftPackageReference "swift-transformers" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/huggingface/swift-transformers";
+			requirement = {
+				kind = upToNextMinorVersion;
+				minimumVersion = 1.1.8;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		554C33F02F5000EA0033BFCD /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Tokenizers;
+		};
+		554C33F32F5001030033BFCD /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Tokenizers;
+		};
+		554C342E2F50026E0033BFCD /* Tokenizers */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 554C342D2F50026E0033BFCD /* XCRemoteSwiftPackageReference "swift-transformers" */;
+			productName = Tokenizers;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 554C32DC2F4D24C60033BFCD /* Project object */;
 }

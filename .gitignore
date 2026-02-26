@@ -7,3 +7,9 @@ xcuserdata/
 
 # Xcode build artifacts
 DerivedData/
+
+# Local ML assets (too large for normal git push)
+Screenshots/Models/CLIP/
+
+# Local cloned package/reference folders
+swift-transformers-main/

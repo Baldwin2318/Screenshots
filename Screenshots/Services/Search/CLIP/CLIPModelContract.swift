@@ -10,8 +10,8 @@ struct CLIPRuntimeConfiguration: Sendable {
     let poolingStrategy: CLIPEmbeddingPoolingStrategy
 
     static let `default` = CLIPRuntimeConfiguration(
-        imageModelName: "ImageEncoder",
-        textModelName: "TextEncoder",
+        imageModelName: "mobileclip_s2_image",
+        textModelName: "mobileclip_s2_text",
         embeddingDimension: EmbeddingCodec.dimension,
         poolingStrategy: .meanRowsOrPrefix
     )
