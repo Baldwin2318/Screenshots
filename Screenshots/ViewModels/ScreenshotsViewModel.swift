@@ -72,7 +72,8 @@ final class ScreenshotsViewModel: ObservableObject {
                 title: $0.title,
                 extractedText: $0.extractedText,
                 summaryText: $0.summaryText,
-                labels: $0.mlLabels
+                labels: $0.mlLabels,
+                imageEmbedding: $0.clipEmbedding
             )
         }
 

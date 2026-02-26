@@ -14,6 +14,7 @@ final class ScreenshotItem {
     var extractedText: String = ""
     var summaryText: String = ""
     var sourceAssetId: String?
+    var clipEmbedding: Data?
 
     init(
         title: String,
@@ -24,7 +25,8 @@ final class ScreenshotItem {
         mlLabels: [String] = [],
         extractedText: String = "",
         summaryText: String = "",
-        sourceAssetId: String? = nil
+        sourceAssetId: String? = nil,
+        clipEmbedding: Data? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -36,6 +38,7 @@ final class ScreenshotItem {
         self.extractedText = extractedText
         self.summaryText = summaryText
         self.sourceAssetId = sourceAssetId
+        self.clipEmbedding = clipEmbedding
     }
 
     var uiImage: UIImage? {

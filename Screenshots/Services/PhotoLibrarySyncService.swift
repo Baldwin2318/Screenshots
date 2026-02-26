@@ -33,6 +33,7 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
         let labels: [String]
         let extractedText: String
         let sourceAssetId: String
+        let clipEmbedding: Data?
     }
 
     func startObserving(onLibraryChanged: @escaping () -> Void) {
@@ -144,9 +145,13 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
             assetList.append(asset)
         }
 
+        let existingBySourceId = Dictionary(uniqueKeysWithValues: existingItems.compactMap { item in
+            item.sourceAssetId.map { ($0, item) }
+        })
         var knownIds = Set(existingItems.compactMap(\.sourceAssetId))
         knownIds.subtract(deletedSourceIds)
         var imported = 0
+        var indexed = 0
         var skipped = 0
         var failed = 0
         let total = assetList.count
@@ -169,6 +174,13 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
             let assetDate = asset.creationDate ?? .now
 
             if knownIds.contains(asset.localIdentifier) {
+                if let existing = existingBySourceId[asset.localIdentifier],
+                   existing.clipEmbedding == nil,
+                   let embedding = await Self.computeEmbedding(for: asset) {
+                    existing.clipEmbedding = embedding
+                    indexed += 1
+                }
+
                 skipped += 1
                 if !encounteredFailure {
                     checkpointCursorDate = Self.maxDate(checkpointCursorDate, assetDate)
@@ -206,7 +218,8 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
                 mlLabels: payload.labels,
                 extractedText: payload.extractedText,
                 summaryText: "",
-                sourceAssetId: payload.sourceAssetId
+                sourceAssetId: payload.sourceAssetId,
+                clipEmbedding: payload.clipEmbedding
             )
 
             context.insert(item)
@@ -232,12 +245,12 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
             }
         }
 
-        if imported > 0 {
+        if imported > 0 || indexed > 0 {
             try? context.save()
         }
 
-        if imported > 0 || skipped > 0 || failed > 0 || deleted > 0 {
-            lastSummary = "Imported \(imported), removed \(deleted), skipped \(skipped), failed \(failed)."
+        if imported > 0 || indexed > 0 || skipped > 0 || failed > 0 || deleted > 0 {
+            lastSummary = "Imported \(imported), indexed \(indexed), removed \(deleted), skipped \(skipped), failed \(failed)."
         } else {
             lastSummary = "Up to date."
         }
@@ -261,6 +274,7 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
 
             guard let loadedImage = image else { return nil }
             let classification = await ScreenshotClassifier.classify(image: loadedImage)
+            let clipEmbedding = await CLIPEmbeddingService.shared.imageEmbeddingData(for: loadedImage)
 
             guard let filename = FileStore.saveImage(loadedImage) else {
                 image = nil
@@ -277,9 +291,15 @@ final class PhotoLibrarySyncService: NSObject, ObservableObject {
                 imagePath: filename,
                 labels: classification.labels,
                 extractedText: classification.extractedText,
-                sourceAssetId: asset.localIdentifier
+                sourceAssetId: asset.localIdentifier,
+                clipEmbedding: clipEmbedding
             )
         }.value
+    }
+
+    private nonisolated static func computeEmbedding(for asset: PHAsset) async -> Data? {
+        guard let image = await loadImage(for: asset) else { return nil }
+        return await CLIPEmbeddingService.shared.imageEmbeddingData(for: image)
     }
 
     private static func maxDate(_ lhs: Date?, _ rhs: Date) -> Date {
